@@ -112,3 +112,33 @@ Settings are stored using Tauri's store plugin with reactive updates:
 ### Single Instance Architecture
 
 The app enforces single instance behavior - launching when already running brings the settings window to front rather than creating a new process.
+
+## Cursor Cloud specific instructions
+
+### Environment
+
+- Rust toolchain must be **stable** (set via `rustup default stable`). The VM ships with an older pinned toolchain that lacks `edition2024` support required by dependencies.
+- The C/C++ compiler must be **gcc/g++** (not clang). Set `CC=gcc CXX=g++` before running `cargo build` or `bun run tauri dev`. Without this, whisper-rs-sys fails to find C++ standard library headers.
+- `WEBKIT_DISABLE_DMABUF_RENDERER=1` should be set when launching the Tauri app to avoid WebKit rendering issues in the VM.
+- `DISPLAY=:1` must be set for the Tauri desktop window to appear.
+
+### Running the app
+
+```bash
+export CC=gcc CXX=g++ DISPLAY=:1 WEBKIT_DISABLE_DMABUF_RENDERER=1
+bun run tauri dev
+```
+
+The first `tauri dev` run compiles the full Rust backend (~3-5 min). Subsequent runs with hot-reload are faster.
+
+### Linting and checks
+
+- `bun run lint` — ESLint on frontend
+- `bun run format:check` — Prettier + cargo fmt check
+- `cargo clippy` (in `src-tauri/`) — Rust linting (expect ~30 pre-existing warnings)
+
+### Key gotchas
+
+- The frontend alone (`bun run dev`) shows a blank page in the browser because it depends on Tauri APIs. Always use `bun run tauri dev` for full testing.
+- The Silero VAD model file at `src-tauri/resources/models/silero_vad_v4.onnx` is required at runtime. If missing, download it (see Model Setup in the Development Commands section above).
+- No external services (databases, APIs, Docker) are needed — everything runs locally.
