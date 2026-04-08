@@ -27,6 +27,7 @@ pub enum EngineType {
     GigaAM,
     Canary,
     Cohere,
+    Cloud,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -610,6 +611,86 @@ impl ModelManager {
             },
         );
 
+        let cloud_languages: Vec<String> = whisper_languages.clone();
+
+        available_models.insert(
+            "cloud-openai".to_string(),
+            ModelInfo {
+                id: "cloud-openai".to_string(),
+                name: "OpenAI (cloud)".to_string(),
+                description: "Transcription via OpenAI API; requires an API key in settings."
+                    .to_string(),
+                filename: "cloud-openai".to_string(),
+                url: None,
+                sha256: None,
+                size_mb: 0,
+                is_downloaded: true,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Cloud,
+                accuracy_score: 0.0,
+                speed_score: 0.0,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: cloud_languages.clone(),
+                supports_language_selection: true,
+                is_custom: false,
+            },
+        );
+
+        available_models.insert(
+            "cloud-groq".to_string(),
+            ModelInfo {
+                id: "cloud-groq".to_string(),
+                name: "Groq (cloud)".to_string(),
+                description: "Transcription via Groq API; requires an API key in settings."
+                    .to_string(),
+                filename: "cloud-groq".to_string(),
+                url: None,
+                sha256: None,
+                size_mb: 0,
+                is_downloaded: true,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Cloud,
+                accuracy_score: 0.0,
+                speed_score: 0.0,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: cloud_languages.clone(),
+                supports_language_selection: true,
+                is_custom: false,
+            },
+        );
+
+        available_models.insert(
+            "cloud-gemini".to_string(),
+            ModelInfo {
+                id: "cloud-gemini".to_string(),
+                name: "Gemini (cloud)".to_string(),
+                description: "Transcription via Google Gemini API; requires an API key in settings."
+                    .to_string(),
+                filename: "cloud-gemini".to_string(),
+                url: None,
+                sha256: None,
+                size_mb: 0,
+                is_downloaded: true,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Cloud,
+                accuracy_score: 0.0,
+                speed_score: 0.0,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: cloud_languages,
+                supports_language_selection: true,
+                is_custom: false,
+            },
+        );
+
         // Auto-discover custom Whisper models (.bin files) in the models directory
         if let Err(e) = Self::discover_custom_whisper_models(&models_dir, &mut available_models) {
             warn!("Failed to discover custom models: {}", e);
@@ -791,17 +872,19 @@ impl ModelManager {
             }
         }
 
-        // If no model is selected, pick the first downloaded one
+        // If no model is selected, pick the first downloaded local model, else any cloud entry
         if settings.selected_model.is_empty() {
-            // Find the first available (downloaded) model
             let models = self.available_models.lock().unwrap();
-            if let Some(available_model) = models.values().find(|model| model.is_downloaded) {
+            let picked = models
+                .values()
+                .find(|m| m.is_downloaded && m.engine_type != EngineType::Cloud)
+                .or_else(|| models.values().find(|m| m.is_downloaded));
+            if let Some(available_model) = picked {
                 info!(
                     "Auto-selecting model: {} ({})",
                     available_model.id, available_model.name
                 );
 
-                // Update settings with the selected model
                 let mut updated_settings = settings;
                 updated_settings.selected_model = available_model.id.clone();
                 write_settings(&self.app_handle, updated_settings);
@@ -1336,6 +1419,10 @@ impl ModelManager {
             model_info.ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
 
         debug!("ModelManager: Found model info: {:?}", model_info);
+
+        if model_info.engine_type == EngineType::Cloud {
+            return Err(anyhow::anyhow!("Cloud models cannot be deleted"));
+        }
 
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self

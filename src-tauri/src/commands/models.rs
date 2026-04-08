@@ -1,6 +1,8 @@
-use crate::managers::model::{ModelInfo, ModelManager};
+use crate::managers::model::{EngineType, ModelInfo, ModelManager};
 use crate::managers::transcription::{ModelStateEvent, TranscriptionManager};
-use crate::settings::{get_settings, write_settings, ModelUnloadTimeout};
+use crate::settings::{
+    get_settings, write_settings, CloudTranscriptionProvider, ModelUnloadTimeout,
+};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -103,6 +105,19 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
     let mut settings = settings;
     settings.selected_model = model_id.to_string();
 
+    match model_id {
+        "cloud-openai" => {
+            settings.cloud_transcription_provider = CloudTranscriptionProvider::OpenAI;
+        }
+        "cloud-groq" => {
+            settings.cloud_transcription_provider = CloudTranscriptionProvider::Groq;
+        }
+        "cloud-gemini" => {
+            settings.cloud_transcription_provider = CloudTranscriptionProvider::Gemini;
+        }
+        _ => {}
+    }
+
     // Reset language to auto if the new model doesn't support the currently selected language.
     // This prevents stale language settings from causing errors (e.g. Canary receiving zh-Hans)
     // and stops downstream processing (e.g. OpenCC) from running on an irrelevant language.
@@ -190,13 +205,46 @@ pub async fn is_model_loading(
     Ok(current_model.is_none())
 }
 
+fn cloud_transcription_ready(settings: &crate::settings::AppSettings) -> bool {
+    use CloudTranscriptionProvider::*;
+    let key = match settings.cloud_transcription_provider {
+        OpenAI => settings
+            .cloud_transcription_api_keys
+            .get("openai")
+            .map(|s| s.as_str())
+            .unwrap_or(""),
+        Groq => settings
+            .cloud_transcription_api_keys
+            .get("groq")
+            .map(|s| s.as_str())
+            .unwrap_or(""),
+        Gemini => settings
+            .cloud_transcription_api_keys
+            .get("gemini")
+            .map(|s| s.as_str())
+            .unwrap_or(""),
+    };
+    !key.trim().is_empty()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn has_any_models_available(
+    app_handle: AppHandle,
     model_manager: State<'_, Arc<ModelManager>>,
 ) -> Result<bool, String> {
     let models = model_manager.get_available_models();
-    Ok(models.iter().any(|m| m.is_downloaded))
+    let has_local = models
+        .iter()
+        .any(|m| m.is_downloaded && m.engine_type != EngineType::Cloud);
+    if has_local {
+        return Ok(true);
+    }
+    let settings = get_settings(&app_handle);
+    if cloud_transcription_ready(&settings) {
+        return Ok(true);
+    }
+    Ok(false)
 }
 
 #[tauri::command]

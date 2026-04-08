@@ -22,9 +22,9 @@ use tauri_plugin_autostart::ManagerExt;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
-    self, get_settings, AutoSubmitKey, ClipboardHandling, KeyboardImplementation, LLMPrompt,
-    OverlayPosition, PasteMethod, ShortcutBinding, SoundTheme, TypingTool,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
+    self, get_settings, AutoSubmitKey, ClipboardHandling, CloudTranscriptionProvider,
+    KeyboardImplementation, LLMPrompt, OverlayPosition, PasteMethod, ShortcutBinding, SoundTheme,
+    TypingTool, APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -1025,6 +1025,69 @@ pub async fn fetch_post_process_models(
     }
 
     crate::llm_client::fetch_models(provider, api_key).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_cloud_transcription_provider_setting(
+    app: AppHandle,
+    provider: CloudTranscriptionProvider,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.cloud_transcription_provider = provider;
+    let model_id = match provider {
+        CloudTranscriptionProvider::OpenAI => "cloud-openai",
+        CloudTranscriptionProvider::Groq => "cloud-groq",
+        CloudTranscriptionProvider::Gemini => "cloud-gemini",
+    };
+    settings.selected_model = model_id.to_string();
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_cloud_transcription_api_key_setting(
+    app: AppHandle,
+    provider_key: String,
+    api_key: String,
+) -> Result<(), String> {
+    if !matches!(provider_key.as_str(), "openai" | "groq" | "gemini") {
+        return Err("Invalid cloud provider key".to_string());
+    }
+    let mut settings = settings::get_settings(&app);
+    settings
+        .cloud_transcription_api_keys
+        .insert(provider_key, api_key);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_cloud_transcription_model_setting(
+    app: AppHandle,
+    provider_key: String,
+    model: String,
+) -> Result<(), String> {
+    if !matches!(provider_key.as_str(), "openai" | "groq" | "gemini") {
+        return Err("Invalid cloud provider key".to_string());
+    }
+    let mut settings = settings::get_settings(&app);
+    settings
+        .cloud_transcription_models
+        .insert(provider_key, model);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn fetch_cloud_transcription_models(
+    provider: CloudTranscriptionProvider,
+    api_key: String,
+) -> Result<Vec<String>, String> {
+    crate::cloud_transcription::fetch_cloud_transcription_models_sync(provider, &api_key)
 }
 
 #[tauri::command]

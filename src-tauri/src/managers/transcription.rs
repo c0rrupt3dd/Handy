@@ -1,4 +1,5 @@
-use crate::audio_toolkit::{apply_custom_words, filter_transcription_output};
+use crate::audio_toolkit::{apply_custom_words, encode_wav_bytes, filter_transcription_output};
+use crate::cloud_transcription;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{
@@ -45,6 +46,7 @@ enum LoadedEngine {
     GigaAM(GigaAMModel),
     Canary(CanaryModel),
     Cohere(CohereModel),
+    Cloud,
 }
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
@@ -284,6 +286,33 @@ impl TranscriptionManager {
             return Err(anyhow::anyhow!(error_msg));
         }
 
+        if model_info.engine_type == EngineType::Cloud {
+            {
+                let mut engine = self.lock_engine();
+                *engine = Some(LoadedEngine::Cloud);
+            }
+            {
+                let mut current_model = self.current_model_id.lock().unwrap();
+                *current_model = Some(model_id.to_string());
+            }
+            self.touch_activity();
+            let _ = self.app_handle.emit(
+                "model-state-changed",
+                ModelStateEvent {
+                    event_type: "loading_completed".to_string(),
+                    model_id: Some(model_id.to_string()),
+                    model_name: Some(model_info.name.clone()),
+                    error: None,
+                },
+            );
+            debug!(
+                "Cloud transcription provider ready: {} (took {}ms)",
+                model_id,
+                load_start.elapsed().as_millis()
+            );
+            return Ok(());
+        }
+
         let model_path = self.model_manager.get_model_path(model_id)?;
 
         // Create appropriate engine based on model type
@@ -376,6 +405,9 @@ impl TranscriptionManager {
                     anyhow::anyhow!(error_msg)
                 })?;
                 LoadedEngine::Cohere(engine)
+            }
+            EngineType::Cloud => {
+                return Err(anyhow::anyhow!("Unreachable: cloud engine handled above"));
             }
         };
 
@@ -629,6 +661,19 @@ impl TranscriptionManager {
                                 .transcribe(&audio, &options)
                                 .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
                         }
+                        LoadedEngine::Cloud => {
+                            let wav = encode_wav_bytes(&audio)
+                                .map_err(|e| anyhow::anyhow!("WAV encode failed: {}", e))?;
+                            let text = cloud_transcription::transcribe_cloud_with_settings(
+                                &settings,
+                                wav,
+                            )
+                            .map_err(|e| anyhow::anyhow!("Cloud transcription failed: {}", e))?;
+                            Ok(transcribe_rs::TranscriptionResult {
+                                text,
+                                segments: vec![],
+                            })
+                        }
                     }
                 },
             ));
@@ -687,7 +732,12 @@ impl TranscriptionManager {
         let is_whisper = self
             .model_manager
             .get_model_info(&settings.selected_model)
-            .map(|info| matches!(info.engine_type, EngineType::Whisper))
+            .map(|info| {
+                matches!(
+                    info.engine_type,
+                    EngineType::Whisper | EngineType::Cloud
+                )
+            })
             .unwrap_or(false);
 
         let corrected_result = if !settings.custom_words.is_empty() && !is_whisper {
