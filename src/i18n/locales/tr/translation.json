@@ -92,6 +92,18 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "Büyük, daha yavaş, ancak çok doğru çok dilli bir model."
+      },
+      "cloud-openai": {
+        "name": "OpenAI (cloud)",
+        "description": "Uses your OpenAI API key. Billing follows OpenAI pricing."
+      },
+      "cloud-groq": {
+        "name": "Groq (cloud)",
+        "description": "Uses your Groq API key. Fast cloud Whisper models."
+      },
+      "cloud-gemini": {
+        "name": "Google Gemini (cloud)",
+        "description": "Uses your Google AI (Gemini) API key. Multimodal transcription."
       }
     },
     "errors": {
@@ -171,7 +183,21 @@
       },
       "noModelsMatch": "Bu filtreyle eşleşen model yok.",
       "yourModels": "İndirilen modeller",
-      "availableModels": "İndirilebilir"
+      "availableModels": "İndirilebilir",
+      "cloudModels": {
+        "title": "Cloud transcription (API)",
+        "description": "Use OpenAI, Groq, or Google Gemini instead of a downloaded model. Add your API key, refresh the model list, and pick a model. Your key is stored only on this device.",
+        "providerLabel": "Provider",
+        "apiKeyLabel": "API key",
+        "modelLabel": "Model",
+        "refreshModels": "Refresh model list",
+        "customModelPlaceholder": "Or type a model id…",
+        "providers": {
+          "openai": "OpenAI",
+          "groq": "Groq",
+          "gemini": "Google Gemini"
+        }
+      }
     },
     "general": {
       "title": "Genel",

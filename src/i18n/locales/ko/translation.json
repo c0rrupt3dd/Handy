@@ -92,6 +92,18 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "크고 느리지만 매우 정확한 다국어 모델."
+      },
+      "cloud-openai": {
+        "name": "OpenAI (cloud)",
+        "description": "Uses your OpenAI API key. Billing follows OpenAI pricing."
+      },
+      "cloud-groq": {
+        "name": "Groq (cloud)",
+        "description": "Uses your Groq API key. Fast cloud Whisper models."
+      },
+      "cloud-gemini": {
+        "name": "Google Gemini (cloud)",
+        "description": "Uses your Google AI (Gemini) API key. Multimodal transcription."
       }
     },
     "errors": {
@@ -236,7 +248,21 @@
         "translation": "번역",
         "allLanguages": "모든 언어"
       },
-      "noModelsMatch": "이 필터에 맞는 모델이 없습니다."
+      "noModelsMatch": "이 필터에 맞는 모델이 없습니다.",
+      "cloudModels": {
+        "title": "Cloud transcription (API)",
+        "description": "Use OpenAI, Groq, or Google Gemini instead of a downloaded model. Add your API key, refresh the model list, and pick a model. Your key is stored only on this device.",
+        "providerLabel": "Provider",
+        "apiKeyLabel": "API key",
+        "modelLabel": "Model",
+        "refreshModels": "Refresh model list",
+        "customModelPlaceholder": "Or type a model id…",
+        "providers": {
+          "openai": "OpenAI",
+          "groq": "Groq",
+          "gemini": "Google Gemini"
+        }
+      }
     },
     "advanced": {
       "title": "고급",
