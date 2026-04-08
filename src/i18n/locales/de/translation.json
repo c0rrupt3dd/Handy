@@ -92,6 +92,18 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "Ein großes, langsameres, aber sehr genaues mehrsprachiges Modell."
+      },
+      "cloud-openai": {
+        "name": "OpenAI (Cloud)",
+        "description": "Nutzt deinen OpenAI-API-Schlüssel. Abrechnung nach den Preisen von OpenAI."
+      },
+      "cloud-groq": {
+        "name": "Groq (Cloud)",
+        "description": "Nutzt deinen Groq-API-Schlüssel. Schnelle Whisper-Modelle in der Cloud."
+      },
+      "cloud-gemini": {
+        "name": "Google Gemini (Cloud)",
+        "description": "Nutzt deinen Google-AI-(Gemini-)API-Schlüssel. Multimodale Transkription."
       }
     },
     "errors": {
@@ -171,7 +183,21 @@
       },
       "noModelsMatch": "Keine Modelle entsprechen diesem Filter.",
       "yourModels": "Heruntergeladene Modelle",
-      "availableModels": "Zum Download verfügbar"
+      "availableModels": "Zum Download verfügbar",
+      "cloudModels": {
+        "title": "Cloud-Transkription (API)",
+        "description": "Statt eines heruntergeladenen Modells OpenAI, Groq oder Google Gemini nutzen. API-Schlüssel eintragen, Modellliste aktualisieren und ein Modell wählen. Der Schlüssel bleibt nur auf diesem Gerät.",
+        "providerLabel": "Anbieter",
+        "apiKeyLabel": "API-Schlüssel",
+        "modelLabel": "Modell",
+        "refreshModels": "Modellliste aktualisieren",
+        "customModelPlaceholder": "Oder Modell-ID eingeben…",
+        "providers": {
+          "openai": "OpenAI",
+          "groq": "Groq",
+          "gemini": "Google Gemini"
+        }
+      }
     },
     "general": {
       "title": "Allgemein",

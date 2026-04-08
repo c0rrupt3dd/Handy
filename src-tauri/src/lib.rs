@@ -1,4 +1,5 @@
 mod actions;
+mod cloud_transcription;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -353,6 +354,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_post_process_model_setting,
             shortcut::set_post_process_provider,
             shortcut::fetch_post_process_models,
+            shortcut::change_cloud_transcription_provider_setting,
+            shortcut::change_cloud_transcription_api_key_setting,
+            shortcut::change_cloud_transcription_model_setting,
+            shortcut::fetch_cloud_transcription_models,
             shortcut::add_post_process_prompt,
             shortcut::update_post_process_prompt,
             shortcut::delete_post_process_prompt,

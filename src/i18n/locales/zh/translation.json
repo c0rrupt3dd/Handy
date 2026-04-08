@@ -92,6 +92,18 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "大型模型，速度较慢，但多语言识别非常准确。"
+      },
+      "cloud-openai": {
+        "name": "OpenAI (cloud)",
+        "description": "Uses your OpenAI API key. Billing follows OpenAI pricing."
+      },
+      "cloud-groq": {
+        "name": "Groq (cloud)",
+        "description": "Uses your Groq API key. Fast cloud Whisper models."
+      },
+      "cloud-gemini": {
+        "name": "Google Gemini (cloud)",
+        "description": "Uses your Google AI (Gemini) API key. Multimodal transcription."
       }
     },
     "errors": {
@@ -171,7 +183,21 @@
       },
       "noModelsMatch": "没有符合此筛选条件的模型。",
       "yourModels": "已下载的模型",
-      "availableModels": "可供下载"
+      "availableModels": "可供下载",
+      "cloudModels": {
+        "title": "Cloud transcription (API)",
+        "description": "Use OpenAI, Groq, or Google Gemini instead of a downloaded model. Add your API key, refresh the model list, and pick a model. Your key is stored only on this device.",
+        "providerLabel": "Provider",
+        "apiKeyLabel": "API key",
+        "modelLabel": "Model",
+        "refreshModels": "Refresh model list",
+        "customModelPlaceholder": "Or type a model id…",
+        "providers": {
+          "openai": "OpenAI",
+          "groq": "Groq",
+          "gemini": "Google Gemini"
+        }
+      }
     },
     "general": {
       "title": "通用",

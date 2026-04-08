@@ -170,6 +170,14 @@ pub enum KeyboardImplementation {
     HandyKeys,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum CloudTranscriptionProvider {
+    OpenAI,
+    Groq,
+    Gemini,
+}
+
 impl Default for KeyboardImplementation {
     fn default() -> Self {
         #[cfg(target_os = "linux")]
@@ -430,6 +438,12 @@ pub struct AppSettings {
     pub whisper_gpu_device: i32,
     #[serde(default)]
     pub extra_recording_buffer_ms: u64,
+    #[serde(default = "default_cloud_transcription_provider")]
+    pub cloud_transcription_provider: CloudTranscriptionProvider,
+    #[serde(default = "default_cloud_transcription_api_keys")]
+    pub cloud_transcription_api_keys: SecretMap,
+    #[serde(default = "default_cloud_transcription_models")]
+    pub cloud_transcription_models: HashMap<String, String>,
 }
 
 fn default_model() -> String {
@@ -644,6 +658,29 @@ fn default_typing_tool() -> TypingTool {
     TypingTool::Auto
 }
 
+fn default_cloud_transcription_provider() -> CloudTranscriptionProvider {
+    CloudTranscriptionProvider::Groq
+}
+
+fn default_cloud_transcription_api_keys() -> SecretMap {
+    let mut map = HashMap::new();
+    map.insert("openai".to_string(), String::new());
+    map.insert("groq".to_string(), String::new());
+    map.insert("gemini".to_string(), String::new());
+    SecretMap(map)
+}
+
+fn default_cloud_transcription_models() -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    map.insert(
+        "groq".to_string(),
+        "whisper-large-v3-turbo".to_string(),
+    );
+    map.insert("openai".to_string(), String::new());
+    map.insert("gemini".to_string(), String::new());
+    map
+}
+
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
     for provider in default_post_process_providers() {
@@ -697,6 +734,34 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
+    changed
+}
+
+fn ensure_cloud_transcription_defaults(settings: &mut AppSettings) -> bool {
+    let mut changed = false;
+    let defaults_keys = default_cloud_transcription_api_keys();
+    for (k, _) in defaults_keys.iter() {
+        if !settings.cloud_transcription_api_keys.contains_key(k) {
+            settings
+                .cloud_transcription_api_keys
+                .insert(k.clone(), String::new());
+            changed = true;
+        }
+    }
+    let default_models = default_cloud_transcription_models();
+    for (k, v) in default_models {
+        match settings.cloud_transcription_models.get(&k) {
+            None => {
+                settings.cloud_transcription_models.insert(k, v);
+                changed = true;
+            }
+            Some(existing) if existing.is_empty() && !v.is_empty() => {
+                settings.cloud_transcription_models.insert(k, v);
+                changed = true;
+            }
+            _ => {}
+        }
+    }
     changed
 }
 
@@ -804,6 +869,9 @@ pub fn get_default_settings() -> AppSettings {
         ort_accelerator: OrtAcceleratorSetting::default(),
         whisper_gpu_device: default_whisper_gpu_device(),
         extra_recording_buffer_ms: 0,
+        cloud_transcription_provider: default_cloud_transcription_provider(),
+        cloud_transcription_api_keys: default_cloud_transcription_api_keys(),
+        cloud_transcription_models: default_cloud_transcription_models(),
     }
 }
 
@@ -878,6 +946,10 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
+    if ensure_cloud_transcription_defaults(&mut settings) {
+        store.set("settings", serde_json::to_value(&settings).unwrap());
+    }
+
     settings
 }
 
@@ -899,6 +971,10 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
     };
 
     if ensure_post_process_defaults(&mut settings) {
+        store.set("settings", serde_json::to_value(&settings).unwrap());
+    }
+
+    if ensure_cloud_transcription_defaults(&mut settings) {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
